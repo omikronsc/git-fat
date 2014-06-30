@@ -214,11 +214,22 @@ class RsyncBackend(object):
 
     def __init__(self,remote,ssh_port,ssh_user,options,objdir):
         self.verbose = verbose_stderr if os.environ.get('GIT_FAT_VERBOSE') else verbose_ignore
+        self.gitroot = subprocess.check_output('git rev-parse --show-toplevel'.split()).strip()
         self.remote = remote
         self.ssh_port = ssh_port
         self.ssh_user = ssh_user
         self.options = options
         self.objdir = objdir
+
+    def get_rsync(self):
+        cfgpath   = os.path.join(self.gitroot,'.gitfat')
+        remote    = gitconfig_get('rsync.remote', file=cfgpath)
+        ssh_port  = gitconfig_get('rsync.sshport', file=cfgpath)
+        ssh_user  = gitconfig_get('rsync.sshuser', file=cfgpath)
+        options   = gitconfig_get('rsync.options', file=cfgpath)
+        if remote is None:
+            raise RuntimeError('No rsync.remote in %s' % cfgpath)
+        return remote, ssh_port, ssh_user, options
 
     def get_rsync_command(self,push):
         (remote, ssh_port, ssh_user, options) = self.get_rsync()
